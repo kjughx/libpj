@@ -199,8 +199,9 @@ typedef struct {
 /* static inline String_View sb_view(String_Builder *sb,  */
 #define sb_find(sb, p) \
   _Generic((p),                                      \
-           int: sb_find_char,                      \
-           char*: sb_find_str                       \
+           char: sb_find_char,                        \
+           int: sb_find_char,                        \
+           char*: sb_find_str                        \
            )((sb), p);                               \
 
 static inline String_View sb_find_char(String_Builder *sb, char c) {
