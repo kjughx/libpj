@@ -107,12 +107,15 @@ typedef struct {
   size_t capacity;
 } String_Builder;
 
-#define sb_append(sb, str) do {                   \
-    size_t __l = strlen(str);                     \
+#define sb_append(sb, str) do {                      \
+    size_t __l = strlen(str);                        \
+    if ((sb)->count == 0) da_append(sb, '\0');       \
+    (sb)->count--;                                     \
     for (size_t __i = 0; __i < __l; ++__i) {         \
-      da_append((sb), str[__i]);                  \
-    }                                             \
-  } while(0);                                     \
+      da_append((sb), str[__i]);                 \
+    }                                                \
+    da_append((sb), '\0');                           \
+  } while(0);
 
 #define sb_appends(sb, ...) __sb_appends((sb), __VA_ARGS__, NULL)
 static inline void __sb_appends(String_Builder *sb, ...) {
@@ -130,14 +133,8 @@ static inline void __sb_appends(String_Builder *sb, ...) {
   size_t __l = strlen(fmt);                                           \
   assert(__l < __TMP_BUF_LEN && "Too long format string");            \
   size_t __s = snprintf(__buf, __TMP_BUF_LEN, fmt, __VA_ARGS__);      \
-  __buf[__s] = '\0';                                                  \
   sb_append((sb), __buf);                                             \
 } while(0);
-
-static inline char* sb_dump(String_Builder *sb) {
-  sb_append(sb, "\0");
-  return sb->items;
-}
 
 static inline void __sb_read_file_fp(String_Builder *sb, FILE *fp) {
   long s;

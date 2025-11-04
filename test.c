@@ -33,25 +33,22 @@ int main(void) {
   sb_append(&sb, "World");
   sb_append(&sb, "!");
   sb_append(&sb, "\n");
-  expect(strncmp(sb_dump(&sb), "Hello, World!\n", sb.count) == 0);
+  expect(strncmp(sb.items, "Hello, World!\n", sb.count) == 0);
   sb.count = 0;
 
   sb_appends(&sb, "Hello, ", "World", "!", "\n");
-  expect(strncmp(sb_dump(&sb), "Hello, World!\n", sb.count) == 0);
+  expect(strncmp(sb.items, "Hello, World!\n", sb.count) == 0);
 
   sb.count = 0;
   sb_read_file(&sb, "./testfile");
-  printf("%s\n", sb_dump(&sb));
 
   sb.count = 0;
   FILE *fp = fopen("./testfile", "r");
   sb_read_file(&sb, fp);
-  printf("%s\n", sb_dump(&sb));
   fclose(fp);
 
   sb.count = 0;
   int fd = open("./testfile", O_RDONLY);
   sb_read_file(&sb, fd);
-  printf("%s\n", sb_dump(&sb));
   close(fd);
 }
