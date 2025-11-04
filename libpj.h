@@ -139,6 +139,38 @@ static inline char* sb_dump(String_Builder *sb) {
   return sb->items;
 }
 
+static inline void __sb_read_file_fp(String_Builder *sb, FILE *fp) {
+  long s;
+  expectf(fseek(fp, 0, SEEK_END) == 0, "%s", strerror(errno));
+  s = ftell(fp);
+  expectf(s >= 0, "%s", strerror(errno));
+  rewind(fp);
+  da_reserve(sb, (size_t)s);
+  expect(fread(sb->items, s, 1, fp));
+}
+
+static inline void __sb_read_file_fd(String_Builder *sb, int fd) {
+  expectf(fd > 0, "%s", "Invalid file descriptor");
+  FILE *fp = fdopen(fd, "r");
+  expectf(fp != NULL, "%s", strerror(errno));
+  __sb_read_file_fp(sb, fp);
+}
+
+static inline void __sb_read_file_char(String_Builder *sb, const char* filename) {
+  FILE *fp = fopen(filename, "r");
+  expectf(fp != NULL, "%s", strerror(errno));
+  __sb_read_file_fp(sb, fp);
+  fclose(fp);
+}
+
+#define sb_read_file(sb, file) do {                            \
+    _Generic((file),                                           \
+             char*: __sb_read_file_char,                       \
+             FILE*: __sb_read_file_fp,                         \
+             int: __sb_read_file_fd                            \
+             )((sb), (file));                                  \
+  } while(0);
+
 /* End: STRING BUILDER */
 
 #endif // _LIBPJ_H_
