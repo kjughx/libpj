@@ -14,6 +14,7 @@
 #define __TMP_BUF_LEN 1024
 static const char __buf[__TMP_BUF_LEN];
 
+/* Start: Useful macros */
 #define expect(cond) do {                              \
     if (!(cond)) {                               \
     printf("%s:%d: Expected %s, \n", __FILE__, __LINE__, #cond);       \
@@ -26,6 +27,15 @@ static const char __buf[__TMP_BUF_LEN];
     printf("%s:%d: Expected %s, " fmt"\n", __FILE__ , __LINE__, #cond, ##__VA_ARGS__);       \
     }                                                         \
   } while (0);
+
+#define TODO() do { \
+    fprintf(stderr, "%s:%d: TODO: %s\n", __FILE__, __LINE__, __func__);               \
+    abort();                                                            \
+  } while(0);
+
+#define UNUSED(x) ((void)x);
+
+/* End: Useful macros */
 
 /* Start: DYNAMIC ARRAY */
 
