@@ -7,6 +7,25 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdarg.h>
+#include <errno.h>
+#include <stdio.h>
+
+/* Temporary buffer */
+#define __TMP_BUF_LEN 1024
+static const char __buf[__TMP_BUF_LEN];
+
+#define expect(cond) do {                              \
+    if (!(cond)) {                               \
+    printf("%s:%d: Expected %s, \n", __FILE__, __LINE__, #cond);       \
+    }                                                         \
+  } while(0);
+#define expectf(cond, ...) _expectf(cond, __VA_ARGS__)
+#define _expectf(cond, fmt, ...) \
+  do {                                           \
+    if (!(cond)) {                               \
+    printf("%s:%d: Expected %s, " fmt"\n", __FILE__ , __LINE__, #cond, ##__VA_ARGS__);       \
+    }                                                         \
+  } while (0);
 
 /* Start: DYNAMIC ARRAY */
 
@@ -35,35 +54,36 @@
 #define __item_size(da) sizeof((da)->items[0])
 #define __item_type(da) typeof((da)->items[0])
 
-#define da_reserve(da, size) do {                                  \
-    assert(da && "NULL dynamic array");                            \
-    static_assert(__item_size((da)) < __MAX_ITEM_SIZE);            \
-    uint8_t *p = malloc(1 + (size) * __item_size((da)));           \
-    assert(p);                                                     \
-    *p = __item_size((da));                                        \
-    (da)->items = (__item_type((da))*) (p + 1);                     \
-    (da)->count = 0;                                               \
-    (da)->capacity = (size);                                       \
-  } while(0);                                                      \
+#define da_reserve(da, size) do {                                       \
+    if ((da)->capacity < size) {                                        \
+      if ((da)->items) {                                                \
+        (da)->items = realloc((da)->items, (size) * __item_size((da)));              \
+      } else {                                                          \
+        (da)->items = malloc((size) * __item_size((da)));               \
+      }                                                                 \
+      assert((da)->items);                                              \
+      (da)->count = 0;                                                  \
+      (da)->capacity = (size);                                          \
+    }                                                                   \
+  } while(0);                                                           \
 
-#define __INIT_CAP 2
+#ifndef UNIT_TEST
+#define __INIT_CAP 256
+#endif // UNIT_TEST
 #define __MAX_ITEM_SIZE 256
 #define da_init(da) do {                                        \
-    assert(da && "NULL dynamic array");                         \
     if (!(da)->items) {                                         \
       da_reserve((da), __INIT_CAP);                             \
     }                                                           \
   } while(0);
 
-#define __GROWTH_RATE 1.414
+#define __GROWTH_RATE 2
 #define da_grow(da) do {                                                \
-    assert(da && "NULL dynamic array");                                 \
-    uint8_t *p = realloc((uint8_t*)(da)->items - 1,                     \
-                         (da)->capacity                                 \
-                         * __GROWTH_RATE                                \
-                         * __item_size((da)) + 1);                      \
-    assert(p);                                                          \
-    (da)->items = (__item_type((da))*)(p + 1);                          \
+    (da)->items = realloc((da)->items,                                  \
+                          (da)->capacity                                \
+                          * __GROWTH_RATE                               \
+                          * __item_size((da)));                         \
+    assert((da)->items);                                                \
     (da)->capacity *= __GROWTH_RATE;                                    \
   } while(0);                                                           \
 
@@ -87,13 +107,9 @@ typedef struct {
   size_t capacity;
 } String_Builder;
 
-/* Temporary buffer */
-#define __TMP_BUF_LEN 1024
-static char __buf[__TMP_BUF_LEN];
-
 #define sb_append(sb, str) do {                   \
     size_t __l = strlen(str);                     \
-    for (int __i = 0; __i < __l; ++__i) {         \
+    for (size_t __i = 0; __i < __l; ++__i) {         \
       da_append((sb), str[__i]);                  \
     }                                             \
   } while(0);                                     \
@@ -117,6 +133,11 @@ static inline void __sb_appends(String_Builder *sb, ...) {
   __buf[__s] = '\0';                                                  \
   sb_append((sb), __buf);                                             \
 } while(0);
+
+static inline char* sb_dump(String_Builder *sb) {
+  sb_append(sb, "\0");
+  return sb->items;
+}
 
 /* End: STRING BUILDER */
 
