@@ -244,6 +244,67 @@ static inline String_Builder sv_to_sb(String_View sv) {
   return sb;
 }
 
+typedef struct {
+  String_View *items;
+  size_t count;
+  size_t capacity;
+
+  bool is_c_delim;
+  union {
+    char c_delim;
+    char *s_delim;
+  };
+} String_Split;
+
+static inline String_Split _sb_split_char(String_Builder *sb, char c) {
+  expect(sb);
+
+  String_Builder tmp = *sb;
+  String_Split sp = {0};
+  for (;;) {
+    String_View sv = sb_find(&tmp, c);
+
+    /* Not found */
+    if (!sv.start) {
+      break;
+    }
+
+    sv.start = tmp.items; /* Start of current string */
+    /* sv.end is equal to previous sv.start which points to @c */
+
+    tmp.items = sv.end + 1; /* 1 past @c */
+    tmp.count -= (sv.end - sv.start);
+    da_append(&sp, sv);
+  }
+
+  String_View sv = {
+    .sb = sb,
+    .start = tmp.items,
+    .end = &sb->items[sb->count - 1],
+  };
+
+  da_append(&sp, sv);
+
+  return sp;
+}
+
+static inline String_Split _sb_split_str(String_Builder *sb, char *s) {
+  String_Split sp = {0};
+  TODO();
+
+  UNUSED(sb);
+  UNUSED(s);
+
+  return sp;
+}
+
+#define sb_split(sb, c) \
+  _Generic((c),                                \
+           int: _sb_split_char,                \
+           char*: _sb_split_str                 \
+           )((sb), (c));
+
+
 /* End: STRING BUILDER */
 
 #endif // _LIBPJ_H_

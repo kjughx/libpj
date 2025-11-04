@@ -62,4 +62,11 @@ int main(void) {
   expect(sv.start != NULL);
   expect(sv.end != NULL);
   expect(strncmp(sv_to_sb(sv).items, "World", 5) == 0);
+
+  sb.count = 0;
+  sb_appends(&sb, "This is a sentence with many spaces");
+  String_Split sp = sb_split(&sb, ' ');
+  for (size_t i = 0; i < sp.count; ++i) {
+    printf("%s\n", sv_to_sb(sp.items[i]).items);
+  }
 }
