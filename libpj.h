@@ -60,6 +60,7 @@ static const char __buf[__TMP_BUF_LEN];
   } name;
 
 #define da_foreach(da, item) for(size_t __i = 0; __i < (da)->count && ((item = (da)->items[__i]) || 1); ++__i)
+#define da_foreach_ref(da, item) for(size_t __i = 0; __i < (da)->count && ((item = &(da)->items[__i]) || 1); ++__i)
 
 #define __item_size(da) sizeof((da)->items[0])
 #define __item_type(da) typeof((da)->items[0])
@@ -105,6 +106,12 @@ static const char __buf[__TMP_BUF_LEN];
     (da)->items[(da)->count++] = (x);                       \
   } while(0);
 
+#define da_map(da, f) do {                       \
+    __item_type((da)) *__item;                   \
+    da_foreach_ref((da), __item) {               \
+      *__item = f(*__item);                      \
+    }                                            \
+  } while(0);
 
 /* End: DYNAMIC ARRAY */
 

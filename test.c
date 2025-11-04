@@ -11,6 +11,10 @@ typedef struct {
   size_t capacity;
 } Vec;
 
+int double_it(int i) {
+  return 2 * i;
+}
+
 int main(void) {
   Vec vec = {0};
   int i;
@@ -26,6 +30,11 @@ int main(void) {
   da_append(&vec, 3);
   da_foreach(&vec, i) {
     expect((int)__i == i);
+  }
+
+  da_map(&vec, double_it);
+  da_foreach(&vec, i) {
+    expect(2 * (int)__i == i);
   }
 
   String_Builder sb = {0};
