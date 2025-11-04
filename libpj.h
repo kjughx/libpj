@@ -143,7 +143,9 @@ static inline void __sb_read_file_fp(String_Builder *sb, FILE *fp) {
   expectf(s >= 0, "%s", strerror(errno));
   rewind(fp);
   da_reserve(sb, (size_t)s);
-  expect(fread(sb->items, s, 1, fp));
+  s = fread(sb->items, 1, s, fp);
+  expectf(s >= 0, "%s", strerror(errno));
+  sb->count = s;
 }
 
 static inline void __sb_read_file_fd(String_Builder *sb, int fd) {
