@@ -170,6 +170,59 @@ static inline void __sb_read_file_char(String_Builder *sb, const char* filename)
              )((sb), (file));                                  \
   } while(0);
 
+typedef struct {
+  String_Builder* sb;
+  char* start;
+  char* end;
+} String_View;
+
+/* static inline String_View sb_view(String_Builder *sb,  */
+#define sb_find(sb, p) \
+  _Generic((p),                                      \
+           int: sb_find_char,                      \
+           char*: sb_find_str                       \
+           )((sb), p);                               \
+
+static inline String_View sb_find_char(String_Builder *sb, char c) {
+  String_View sv = {.sb = sb};
+
+  for (size_t i = 0; i < sb->count; ++i) {
+    if (sb->items[i] == c) {
+      sv.start = sv.end = &sb->items[i];
+      break;
+    }
+  }
+
+  return sv;
+}
+
+static inline String_View sb_find_str(String_Builder *sb, const char* s) {
+  String_View sv = {.sb = sb };
+
+  size_t __l = strlen(s);
+  for (size_t i = 0; i < sb->count; ++i) {
+    if (sb->items[i] == s[0] && i + __l < sb->count) {
+      if (strncmp(&sb->items[i], s, __l) == 0) {
+        sv.start = &sb->items[i];
+        sv.end = (&sb->items[i] + __l);
+      }
+    }
+  }
+
+  return sv;
+}
+
+static inline String_Builder sv_to_sb(String_View sv) {
+  String_Builder sb = {0};
+  size_t __l = ((size_t)sv.end - (size_t)sv.start);
+  da_reserve(&sb, __l);
+  memcpy(sb.items, sv.start, __l);
+  sb.count = __l;
+  da_append(&sb, '\0');
+
+  return sb;
+}
+
 /* End: STRING BUILDER */
 
 #endif // _LIBPJ_H_

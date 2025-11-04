@@ -51,4 +51,15 @@ int main(void) {
   int fd = open("./testfile", O_RDONLY);
   sb_read_file(&sb, fd);
   close(fd);
+
+  String_View sv = sb_find(&sb, 'W');
+  expect(sv.start != NULL);
+  expect(sv.end != NULL);
+  expect(*sv.start == *sv.end);
+  expect(*sv.start == 'W');
+
+  sv = sb_find(&sb, "World");
+  expect(sv.start != NULL);
+  expect(sv.end != NULL);
+  expect(strncmp(sv_to_sb(sv).items, "World", 5) == 0);
 }
