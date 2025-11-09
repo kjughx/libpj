@@ -125,6 +125,62 @@ static inline void* __box(void* x, size_t s) {
 
 /* End: Box */
 
+/* Start: Linear Algebra */
+/*
+   A Matrix has the shape:
+   struct {
+     <type> *items;
+     size_t nx;
+     size_t ny;
+   };
+
+   A Vector has shape:
+   struct {
+     <type> *items;
+     size_t n;
+   };
+*/
+#define ma_size(ma) ((ma)->nx * (ma)->ny * sizeof((ma)->items[0]))
+
+#define ma_init(ma) do {                                                \
+    if (!(ma)->items) {                                                 \
+      (ma)->items = malloc(ma_size((ma))); \
+    }                                                                   \
+    expect((ma)->items);                                                \
+  } while(0);
+
+/* Returns pointer to element */
+#define ma_at(ma, x, y) ((ma)->items + (ma)->nx * y + x)
+
+#define ma_diag(ma, val) do {                     \
+    expect((ma)->nx == (ma)->ny);                 \
+    ma_fill((ma), 0);                      \
+    for (size_t __i = 0; __i < (ma)->nx; ++__i) { \
+      *ma_at((ma), __i, __i) = val;               \
+    }                                             \
+  } while(0);
+
+#define ma_fill(ma, val) do {                   \
+    ma_init((ma));                                \
+    memset((ma)->items, val, ma_size((ma)));    \
+  } while(0);
+
+#define v_size(v) ((v)->n * sizeof((v)->items[0]))
+#define v_init(v) do {                          \
+    if (!(v)->items) {                          \
+      (v)->items = malloc(v_size(v));           \
+    }                                           \
+  } while(0);
+
+#define v_fill(v, val) do {                     \
+    memset((v)->items, val, v_size((v)));       \
+  } while(0);
+
+#define ma_mul(ma1, ma2) TODO()
+#define ma_mulv(ma, v) TODO()
+
+/* End: Linear Algebra */
+
 /* Start: STRING BUILDER */
 
 /* A string builder is like a dynamic array specialized on strings */

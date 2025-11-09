@@ -23,6 +23,12 @@ typedef struct {
   size_t capacity;
 } Vec;
 
+typedef struct {
+  int *items;
+  size_t nx;
+  size_t ny;
+} Matrix;
+
 int double_it(int i) {
   return 2 * i;
 }
@@ -48,6 +54,20 @@ int main(void) {
   da_foreach(&vec, i) {
     expect(2 * (int)__i == i);
   }
+
+  /* Linear Algebra */
+  Matrix ma = {.nx = 10, .ny = 10};
+  ma_diag(&ma, 69);
+  for (size_t x = 0; x < ma.nx; ++x) {
+    for (size_t y = 0; y < ma.ny; ++y) {
+      if (x == y) {
+        expect(*ma_at(&ma, x, y) == 69);
+      } else {
+        expect(*ma_at(&ma, x, y) == 0);
+      }
+    }
+  }
+
 
   String_Builder sb = {0};
   sb_append(&sb, "Hello, ");
