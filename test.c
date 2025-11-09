@@ -4,18 +4,21 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#define expect_op(a, o, b, fmt, ...) do {       \
-    if (!((a) o (b))) {                         \
-      printf(fmt"\n", __VA_ARGS__);             \
-    }                                           \
-  } while(0);
+#define expect_op(a, o, b, fmt, ...)                                           \
+  do {                                                                         \
+    if (!((a)o(b))) {                                                          \
+      printf(fmt "\n", __VA_ARGS__);                                           \
+    }                                                                          \
+  } while (0);
 
-#define expect_int_eq(a, b) expect_op(a, ==, b, "lhs != rhs: lhs = %d, rhs = %d", a, b)
-#define expect_str_eq(a, b) do {                            \
-    if (!a || !b || strcmp(a, b) != 0) {                    \
-      printf("lhs != rhs: lhs = `%s`, rhs = `%s`\n", a, b); \
-    }                                                       \
-  } while(0);
+#define expect_int_eq(a, b)                                                    \
+  expect_op(a, ==, b, "lhs != rhs: lhs = %d, rhs = %d", a, b)
+#define expect_str_eq(a, b)                                                    \
+  do {                                                                         \
+    if (!a || !b || strcmp(a, b) != 0) {                                       \
+      printf("lhs != rhs: lhs = `%s`, rhs = `%s`\n", a, b);                    \
+    }                                                                          \
+  } while (0);
 
 typedef struct {
   int *items;
@@ -29,9 +32,7 @@ typedef struct {
   size_t ny;
 } Matrix;
 
-int double_it(int i) {
-  return 2 * i;
-}
+int double_it(int i) { return 2 * i; }
 
 int main(void) {
   /* Dynamic Array */
@@ -43,18 +44,14 @@ int main(void) {
 
   da_append(&vec, 2);
   expect(vec.count == 3);
-  expectf(vec.capacity == __INIT_CAP * __GROWTH_RATE,
-          "%zu != %zu", vec.capacity, (size_t)__INIT_CAP * __GROWTH_RATE);
+  expectf(vec.capacity == __INIT_CAP * __GROWTH_RATE, "%zu != %zu",
+          vec.capacity, (size_t)__INIT_CAP * __GROWTH_RATE);
 
   da_append(&vec, 3);
-  da_foreach(&vec, i) {
-    expect((int)__i == i);
-  }
+  da_foreach(&vec, i) { expect((int)__i == i); }
 
   da_map(&vec, double_it);
-  da_foreach(&vec, i) {
-    expect(2 * (int)__i == i);
-  }
+  da_foreach(&vec, i) { expect(2 * (int)__i == i); }
 
   /* Linear Algebra */
   Matrix ma = {.nx = 10, .ny = 10};
@@ -68,7 +65,6 @@ int main(void) {
       }
     }
   }
-
 
   /* String Builder */
   String_Builder sb = {0};
@@ -107,9 +103,8 @@ int main(void) {
 
   sb.count = 0;
   sb_appends(&sb, "This is a sentence with many spaces");
-  static char *splits[] = {
-    "This", "is", "a", "sentence", "with", "many", "spaces"
-  };
+  static char *splits[] = {"This", "is",   "a",     "sentence",
+                           "with", "many", "spaces"};
 
   String_Split sp = sb_split(&sb, ' ');
   for (size_t i = 0; i < sp.count; ++i) {

@@ -1,37 +1,40 @@
 #ifndef _LIBPJ_H_
 #define _LIBPJ_H_
 
-#include <stddef.h>
 #include <assert.h>
+#include <errno.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
-#include <stdarg.h>
-#include <errno.h>
-#include <stdio.h>
 
 /* Temporary buffer */
 #define __TMP_BUF_LEN 1024
 static const char __buf[__TMP_BUF_LEN];
 
 /* Start: Useful macros */
-#define expect(cond) do {                              \
-    if (!(cond)) {                               \
-    printf("%s:%d: Expected %s, \n", __FILE__, __LINE__, #cond);       \
-    }                                                         \
-  } while(0);
+#define expect(cond)                                                           \
+  do {                                                                         \
+    if (!(cond)) {                                                             \
+      printf("%s:%d: Expected %s, \n", __FILE__, __LINE__, #cond);             \
+    }                                                                          \
+  } while (0);
 #define expectf(cond, ...) _expectf(cond, __VA_ARGS__)
-#define _expectf(cond, fmt, ...) \
-  do {                                           \
-    if (!(cond)) {                               \
-    printf("%s:%d: Expected %s, " fmt"\n", __FILE__ , __LINE__, #cond, ##__VA_ARGS__);       \
-    }                                                         \
+#define _expectf(cond, fmt, ...)                                               \
+  do {                                                                         \
+    if (!(cond)) {                                                             \
+      printf("%s:%d: Expected %s, " fmt "\n", __FILE__, __LINE__, #cond,       \
+             ##__VA_ARGS__);                                                   \
+    }                                                                          \
   } while (0);
 
-#define TODO() do { \
-    fprintf(stderr, "%s:%d: TODO: %s\n", __FILE__, __LINE__, __func__);               \
-    abort();                                                            \
-  } while(0);
+#define TODO()                                                                 \
+  do {                                                                         \
+    fprintf(stderr, "%s:%d: TODO: %s\n", __FILE__, __LINE__, __func__);        \
+    abort();                                                                   \
+  } while (0);
 
 #define UNUSED(x) ((void)x);
 
@@ -49,75 +52,80 @@ static const char __buf[__TMP_BUF_LEN];
    };
    ```
 
-   In da_init we allocate da->items. In the beginning of items we store the sizes of
-   the elements in case for future improvements.
+   In da_init we allocate da->items. In the beginning of items we store the
+   sizes of the elements in case for future improvements.
 */
-#define da_decl(name, type) \
-  typedef struct {          \
-    type *items;            \
-    size_t count;           \
-    size_t capacity;        \
+#define da_decl(name, type)                                                    \
+  typedef struct {                                                             \
+    type *items;                                                               \
+    size_t count;                                                              \
+    size_t capacity;                                                           \
   } name;
 
-#define da_foreach(da, item) for(size_t __i = 0; __i < (da)->count && ((item = (da)->items[__i]) || 1); ++__i)
-#define da_foreach_ref(da, item) for(size_t __i = 0; __i < (da)->count && ((item = &(da)->items[__i]) || 1); ++__i)
+#define da_foreach(da, item)                                                   \
+  for (size_t __i = 0; __i < (da)->count && ((item = (da)->items[__i]) || 1);  \
+       ++__i)
+#define da_foreach_ref(da, item)                                               \
+  for (size_t __i = 0; __i < (da)->count && ((item = &(da)->items[__i]) || 1); \
+       ++__i)
 
 #define __item_size(da) sizeof((da)->items[0])
 #define __item_type(da) typeof((da)->items[0])
 
-#define da_reserve(da, size) do {                                       \
-    if ((da)->capacity < size) {                                        \
-      if ((da)->items) {                                                \
-        (da)->items = realloc((da)->items, (size) * __item_size((da)));              \
-      } else {                                                          \
-        (da)->items = malloc((size) * __item_size((da)));               \
-      }                                                                 \
-      assert((da)->items);                                              \
-      (da)->count = 0;                                                  \
-      (da)->capacity = (size);                                          \
-    }                                                                   \
-  } while(0);                                                           \
+#define da_reserve(da, size)                                                   \
+  do {                                                                         \
+    if ((da)->capacity < size) {                                               \
+      if ((da)->items) {                                                       \
+        (da)->items = realloc((da)->items, (size) * __item_size((da)));        \
+      } else {                                                                 \
+        (da)->items = malloc((size) * __item_size((da)));                      \
+      }                                                                        \
+      assert((da)->items);                                                     \
+      (da)->count = 0;                                                         \
+      (da)->capacity = (size);                                                 \
+    }                                                                          \
+  } while (0);
 
 #ifndef UNIT_TEST
 #define __INIT_CAP 256
 #endif // UNIT_TEST
 #define __MAX_ITEM_SIZE 256
-#define da_init(da) do {                                        \
-    if (!(da)->items) {                                         \
-      da_reserve((da), __INIT_CAP);                             \
-    }                                                           \
-  } while(0);
+#define da_init(da)                                                            \
+  do {                                                                         \
+    if (!(da)->items) {                                                        \
+      da_reserve((da), __INIT_CAP);                                            \
+    }                                                                          \
+  } while (0);
 
 #define __GROWTH_RATE 2
-#define da_grow(da) do {                                                \
-    (da)->items = realloc((da)->items,                                  \
-                          (da)->capacity                                \
-                          * __GROWTH_RATE                               \
-                          * __item_size((da)));                         \
-    assert((da)->items);                                                \
-    (da)->capacity *= __GROWTH_RATE;                                    \
-  } while(0);                                                           \
+#define da_grow(da)                                                            \
+  do {                                                                         \
+    (da)->items = realloc((da)->items,                                         \
+                          (da)->capacity * __GROWTH_RATE * __item_size((da))); \
+    assert((da)->items);                                                       \
+    (da)->capacity *= __GROWTH_RATE;                                           \
+  } while (0);
 
-#define da_append(da, x) do {                               \
-    da_init((da));                                          \
-    if ((da)->count == (da)->capacity) {                    \
-      da_grow((da));                                        \
-    }                                                       \
-    (da)->items[(da)->count++] = (x);                       \
-  } while(0);
+#define da_append(da, x)                                                       \
+  do {                                                                         \
+    da_init((da));                                                             \
+    if ((da)->count == (da)->capacity) {                                       \
+      da_grow((da));                                                           \
+    }                                                                          \
+    (da)->items[(da)->count++] = (x);                                          \
+  } while (0);
 
-#define da_map(da, f) do {                       \
-    __item_type((da)) *__item;                   \
-    da_foreach_ref((da), __item) {               \
-      *__item = f(*__item);                      \
-    }                                            \
-  } while(0);
+#define da_map(da, f)                                                          \
+  do {                                                                         \
+    __item_type((da)) * __item;                                                \
+    da_foreach_ref((da), __item) { *__item = f(*__item); }                     \
+  } while (0);
 
 /* End: DYNAMIC ARRAY */
 
 /* Start: Box */
-#define Box(x) (typeof(x)) __box(x, sizeof(x))
-static inline void* __box(void* x, size_t s) {
+#define Box(x) (typeof(x))__box(x, sizeof(x))
+static inline void *__box(void *x, size_t s) {
   void *p = malloc(s);
   memcpy(x, p, s);
   return p;
@@ -142,39 +150,44 @@ static inline void* __box(void* x, size_t s) {
 */
 #define ma_size(ma) ((ma)->nx * (ma)->ny * sizeof((ma)->items[0]))
 
-#define ma_init(ma) do {                                                \
-    if (!(ma)->items) {                                                 \
-      (ma)->items = malloc(ma_size((ma))); \
-    }                                                                   \
-    expect((ma)->items);                                                \
-  } while(0);
+#define ma_init(ma)                                                            \
+  do {                                                                         \
+    if (!(ma)->items) {                                                        \
+      (ma)->items = malloc(ma_size((ma)));                                     \
+    }                                                                          \
+    expect((ma)->items);                                                       \
+  } while (0);
 
 /* Returns pointer to element */
 #define ma_at(ma, x, y) ((ma)->items + (ma)->nx * y + x)
 
-#define ma_diag(ma, val) do {                     \
-    expect((ma)->nx == (ma)->ny);                 \
-    ma_fill((ma), 0);                      \
-    for (size_t __i = 0; __i < (ma)->nx; ++__i) { \
-      *ma_at((ma), __i, __i) = val;               \
-    }                                             \
-  } while(0);
+#define ma_diag(ma, val)                                                       \
+  do {                                                                         \
+    expect((ma)->nx == (ma)->ny);                                              \
+    ma_fill((ma), 0);                                                          \
+    for (size_t __i = 0; __i < (ma)->nx; ++__i) {                              \
+      *ma_at((ma), __i, __i) = val;                                            \
+    }                                                                          \
+  } while (0);
 
-#define ma_fill(ma, val) do {                   \
-    ma_init((ma));                                \
-    memset((ma)->items, val, ma_size((ma)));    \
-  } while(0);
+#define ma_fill(ma, val)                                                       \
+  do {                                                                         \
+    ma_init((ma));                                                             \
+    memset((ma)->items, val, ma_size((ma)));                                   \
+  } while (0);
 
 #define v_size(v) ((v)->n * sizeof((v)->items[0]))
-#define v_init(v) do {                          \
-    if (!(v)->items) {                          \
-      (v)->items = malloc(v_size(v));           \
-    }                                           \
-  } while(0);
+#define v_init(v)                                                              \
+  do {                                                                         \
+    if (!(v)->items) {                                                         \
+      (v)->items = malloc(v_size(v));                                          \
+    }                                                                          \
+  } while (0);
 
-#define v_fill(v, val) do {                     \
-    memset((v)->items, val, v_size((v)));       \
-  } while(0);
+#define v_fill(v, val)                                                         \
+  do {                                                                         \
+    memset((v)->items, val, v_size((v)));                                      \
+  } while (0);
 
 #define ma_mul(ma1, ma2) TODO()
 #define ma_mulv(ma, v) TODO()
@@ -185,39 +198,42 @@ static inline void* __box(void* x, size_t s) {
 
 /* A string builder is like a dynamic array specialized on strings */
 typedef struct {
-  char* items;
+  char *items;
   size_t count;
   size_t capacity;
 } String_Builder;
 
-#define sb_append(sb, str) do {                      \
-    size_t __l = strlen(str);                        \
-    if ((sb)->count == 0) da_append(sb, '\0');       \
-    (sb)->count--;                                     \
-    for (size_t __i = 0; __i < __l; ++__i) {         \
-      da_append((sb), str[__i]);                 \
-    }                                                \
-    da_append((sb), '\0');                           \
-  } while(0);
+#define sb_append(sb, str)                                                     \
+  do {                                                                         \
+    size_t __l = strlen(str);                                                  \
+    if ((sb)->count == 0)                                                      \
+      da_append(sb, '\0');                                                     \
+    (sb)->count--;                                                             \
+    for (size_t __i = 0; __i < __l; ++__i) {                                   \
+      da_append((sb), str[__i]);                                               \
+    }                                                                          \
+    da_append((sb), '\0');                                                     \
+  } while (0);
 
 #define sb_appends(sb, ...) __sb_appends((sb), __VA_ARGS__, NULL)
 static inline void __sb_appends(String_Builder *sb, ...) {
   char *s;
   va_list ap;
   va_start(ap, sb);
-  s = va_arg(ap, char*);
-  while(s) {
+  s = va_arg(ap, char *);
+  while (s) {
     sb_append(sb, s);
-    s = va_arg(ap, char*);
+    s = va_arg(ap, char *);
   }
 }
 
-#define sb_appendf(sb, fmt, ...) do {                                 \
-  size_t __l = strlen(fmt);                                           \
-  assert(__l < __TMP_BUF_LEN && "Too long format string");            \
-  size_t __s = snprintf(__buf, __TMP_BUF_LEN, fmt, __VA_ARGS__);      \
-  sb_append((sb), __buf);                                             \
-} while(0);
+#define sb_appendf(sb, fmt, ...)                                               \
+  do {                                                                         \
+    size_t __l = strlen(fmt);                                                  \
+    assert(__l < __TMP_BUF_LEN && "Too long format string");                   \
+    size_t __s = snprintf(__buf, __TMP_BUF_LEN, fmt, __VA_ARGS__);             \
+    sb_append((sb), __buf);                                                    \
+  } while (0);
 
 static inline void __sb_read_file_fp(String_Builder *sb, FILE *fp) {
   long s;
@@ -238,20 +254,21 @@ static inline void __sb_read_file_fd(String_Builder *sb, int fd) {
   __sb_read_file_fp(sb, fp);
 }
 
-static inline void __sb_read_file_char(String_Builder *sb, const char* filename) {
+static inline void __sb_read_file_char(String_Builder *sb,
+                                       const char *filename) {
   FILE *fp = fopen(filename, "r");
   expectf(fp != NULL, "%s", strerror(errno));
   __sb_read_file_fp(sb, fp);
   fclose(fp);
 }
 
-#define sb_read_file(sb, file) do {                            \
-    _Generic((file),                                           \
-             char*: __sb_read_file_char,                       \
-             FILE*: __sb_read_file_fp,                         \
-             int: __sb_read_file_fd                            \
-             )((sb), (file));                                  \
-  } while(0);
+#define sb_read_file(sb, file)                                                 \
+  do {                                                                         \
+    _Generic((file),                                                           \
+        char *: __sb_read_file_char,                                           \
+        FILE *: __sb_read_file_fp,                                             \
+        int: __sb_read_file_fd)((sb), (file));                                 \
+  } while (0);
 
 typedef struct {
   const char *buf;
@@ -259,12 +276,9 @@ typedef struct {
 } String_View;
 
 /* static inline String_View sb_view(String_Builder *sb,  */
-#define sb_find(sb, p) \
-  _Generic((p),                                      \
-           char: sb_find_char,                        \
-           int: sb_find_char,                        \
-           char*: sb_find_str                        \
-           )((sb), p);                               \
+#define sb_find(sb, p)                                                         \
+  _Generic((p), char: sb_find_char, int: sb_find_char, char *: sb_find_str)(   \
+      (sb), p);
 
 static inline String_View sb_find_char(String_Builder *sb, char c) {
   String_View sv = {0};
@@ -280,7 +294,7 @@ static inline String_View sb_find_char(String_Builder *sb, char c) {
   return sv;
 }
 
-static inline String_View sb_find_str(String_Builder *sb, const char* s) {
+static inline String_View sb_find_str(String_Builder *sb, const char *s) {
   String_View sv = {0};
 
   size_t __l = strlen(s);
@@ -354,8 +368,8 @@ static inline String_Split _sb_split_char(String_Builder *sb, char c) {
   }
 
   String_View sv = {
-    .buf = tmp.items,
-    .size = (sb->count - tmp.count),
+      .buf = tmp.items,
+      .size = (sb->count - tmp.count),
   };
 
   da_append(&sp, sv);
@@ -373,12 +387,8 @@ static inline String_Split _sb_split_str(String_Builder *sb, char *s) {
   return sp;
 }
 
-#define sb_split(sb, c) \
-  _Generic((c),                                \
-           int: _sb_split_char,                \
-           char*: _sb_split_str                 \
-           )((sb), (c));
-
+#define sb_split(sb, c)                                                        \
+  _Generic((c), int: _sb_split_char, char *: _sb_split_str)((sb), (c));
 
 /* End: STRING BUILDER */
 
