@@ -4,6 +4,18 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#define expect_op(a, o, b, fmt, ...) do {       \
+    if (!((a) o (b))) {                         \
+      printf(fmt"\n", __VA_ARGS__);             \
+    }                                           \
+  } while(0);
+
+#define expect_int_eq(a, b) expect_op(a, ==, b, "lhs != rhs: lhs = %d, rhs = %d", a, b)
+#define expect_str_eq(a, b) do {                            \
+    if (!a || !b || strcmp(a, b) != 0) {                    \
+      printf("lhs != rhs: lhs = `%s`, rhs = `%s`\n", a, b); \
+    }                                                       \
+  } while(0);
 
 typedef struct {
   int *items;
