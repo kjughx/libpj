@@ -62,14 +62,13 @@ int main(void) {
   close(fd);
 
   String_View sv = sb_find(&sb, 'W');
-  expect(sv.start != NULL);
-  expect(sv.end != NULL);
-  expect(*sv.start == *sv.end);
-  expect(*sv.start == 'W');
+  expect(sv.buf != NULL);
+  expect(sv.size > 0);
+  expect(*sv.buf == 'W');
 
   sv = sb_find(&sb, "World");
-  expect(sv.start != NULL);
-  expect(sv.end != NULL);
+  expect(sv.buf != NULL);
+  expect(sv.size > 0);
   expect(strncmp(sv_to_sb(sv).items, "World", 5) == 0);
 
   sb.count = 0;

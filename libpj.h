@@ -198,9 +198,8 @@ static inline void __sb_read_file_char(String_Builder *sb, const char* filename)
   } while(0);
 
 typedef struct {
-  String_Builder* sb;
-  char* start;
-  char* end;
+  const char *buf;
+  size_t size;
 } String_View;
 
 /* static inline String_View sb_view(String_Builder *sb,  */
@@ -212,11 +211,12 @@ typedef struct {
            )((sb), p);                               \
 
 static inline String_View sb_find_char(String_Builder *sb, char c) {
-  String_View sv = {.sb = sb};
+  String_View sv = {0};
 
   for (size_t i = 0; i < sb->count; ++i) {
     if (sb->items[i] == c) {
-      sv.start = sv.end = &sb->items[i];
+      sv.buf = &sb->items[i];
+      sv.size = sb->count - (sv.buf - sb->items);
       break;
     }
   }
@@ -225,14 +225,15 @@ static inline String_View sb_find_char(String_Builder *sb, char c) {
 }
 
 static inline String_View sb_find_str(String_Builder *sb, const char* s) {
-  String_View sv = {.sb = sb };
+  String_View sv = {0};
 
   size_t __l = strlen(s);
   for (size_t i = 0; i < sb->count; ++i) {
     if (sb->items[i] == s[0] && i + __l < sb->count) {
       if (strncmp(&sb->items[i], s, __l) == 0) {
-        sv.start = &sb->items[i];
-        sv.end = (&sb->items[i] + __l);
+        sv.buf = &sb->items[i];
+        sv.size = sb->count - (sv.buf - sb->items);
+        break;
       }
     }
   }
@@ -242,10 +243,9 @@ static inline String_View sb_find_str(String_Builder *sb, const char* s) {
 
 static inline String_Builder sv_to_sb(String_View sv) {
   String_Builder sb = {0};
-  size_t __l = ((size_t)sv.end - (size_t)sv.start);
-  da_reserve(&sb, __l);
-  memcpy(sb.items, sv.start, __l);
-  sb.count = __l;
+  da_reserve(&sb, sv.size);
+  memcpy(sb.items, sv.buf, sv.size);
+  sb.count = sv.size;
   da_append(&sb, '\0');
 
   return sb;
@@ -268,26 +268,34 @@ static inline String_Split _sb_split_char(String_Builder *sb, char c) {
 
   String_Builder tmp = *sb;
   String_Split sp = {0};
+  const char *p = tmp.items;
   for (;;) {
-    String_View sv = sb_find(&tmp, c);
+    String_View next = sb_find(&tmp, c);
 
     /* Not found */
-    if (!sv.start) {
+    if (!next.buf) {
       break;
     }
 
-    sv.start = tmp.items; /* Start of current string */
-    /* sv.end is equal to previous sv.start which points to @c */
+    String_View sv = {
+        .buf = p,
+        .size = tmp.count - next.size,
+    };
 
-    tmp.items = sv.end + 1; /* 1 past @c */
-    tmp.count -= (sv.end - sv.start);
+    /* Skip @c */
+    next.buf++;
+    next.size--;
+
     da_append(&sp, sv);
+    tmp.items += (next.buf - p);
+    tmp.count -= (next.buf - p);
+
+    p = next.buf;
   }
 
   String_View sv = {
-    .sb = sb,
-    .start = tmp.items,
-    .end = &sb->items[sb->count - 1],
+    .buf = tmp.items,
+    .size = (sb->count - tmp.count),
   };
 
   da_append(&sp, sv);
