@@ -307,6 +307,10 @@ static inline String_Builder sv_to_sb(String_View sv) {
   return sb;
 }
 
+static inline const char *sv_to_cstr(String_View sv) {
+  return strndup(sv.buf, sv.size);
+}
+
 typedef struct {
   String_View *items;
   size_t count;
