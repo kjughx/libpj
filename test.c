@@ -34,6 +34,7 @@ int double_it(int i) {
 }
 
 int main(void) {
+  /* Dynamic Array */
   Vec vec = {0};
   int i;
   da_append(&vec, 0);
@@ -69,6 +70,7 @@ int main(void) {
   }
 
 
+  /* String Builder */
   String_Builder sb = {0};
   sb_append(&sb, "Hello, ");
   sb_append(&sb, "World");
