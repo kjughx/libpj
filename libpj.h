@@ -12,7 +12,7 @@
 
 /* Temporary buffer */
 #define __TMP_BUF_LEN 1024
-static const char __buf[__TMP_BUF_LEN];
+static char __buf[__TMP_BUF_LEN] = {0};
 
 /* Start: Useful macros */
 #define expect(cond)                                                           \
@@ -392,4 +392,57 @@ static inline String_Split _sb_split_str(String_Builder *sb, char *s) {
 
 /* End: STRING BUILDER */
 
+/* Start: Temporary strings */
+#define format(fmt, ...) __format(fmt, __VA_ARGS__)
+
+const char *__format(const char *fmt, ...) {
+  expect(fmt);
+  char *p = __buf;
+  size_t l = __TMP_BUF_LEN;
+  va_list ap;
+  int d;
+  char c;
+  char *s;
+  double f;
+  va_start(ap, fmt);
+  while (*fmt) {
+    if (*fmt == '%') {
+      switch (*(++fmt)) {
+        case 'd': {
+          d = va_arg(ap, int);
+          int _l = snprintf(p, l, "%d", d);
+          p += _l;
+          l -= _l;
+        } break;
+        case 'c': {
+          c = va_arg(ap, int);
+          *p++ = c;
+          --l;
+        } break;
+        case 's': {
+          s = va_arg(ap, char*);
+          int _l = snprintf(p, l, "%s", s);
+          p += _l;
+          l -= l;
+        } break;
+        case 'f': {
+          f = va_arg(ap, double);
+          int _l = snprintf(p, l, "%.6f", f);
+          p += _l;
+          l -= l;
+        } break;
+        default:
+          assert(false && "Unsupported format specifier");
+      }
+      ++fmt;
+    } else {
+      *p++ = *fmt++;
+      l--;
+    }
+  }
+  *p = '\0';
+
+  return __buf;
+}
+/* End: Temporary strings */
 #endif // _LIBPJ_H_
