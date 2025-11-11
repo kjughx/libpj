@@ -270,6 +270,17 @@ static inline void __sb_read_file_char(String_Builder *sb,
         int: __sb_read_file_fd)((sb), (file));                                 \
   } while (0);
 
+static inline void sb_strip(String_Builder *sb, char c) {
+  if (sb->count == 0) return;
+  if (sb->items[0] == c) {
+    sb->items++; /* LEAK */
+    sb->count--;
+  }
+  if (sb->items[sb->count - 1] == c) {
+    sb->count--;
+  }
+}
+
 typedef struct {
   const char *buf;
   size_t size;
