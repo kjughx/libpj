@@ -286,7 +286,6 @@ typedef struct {
   size_t size;
 } String_View;
 
-/* static inline String_View sb_view(String_Builder *sb,  */
 #define sb_find(sb, p)                                                         \
   _Generic((p), char: sb_find_char, int: sb_find_char, char *: sb_find_str)(   \
       (sb), p);
