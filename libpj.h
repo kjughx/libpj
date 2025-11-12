@@ -124,10 +124,10 @@ static char __buf[__TMP_BUF_LEN] = {0};
 /* End: DYNAMIC ARRAY */
 
 /* Start: Box */
-#define Box(x) (typeof(x))__box(x, sizeof(x))
+#define Box(x) __box(&x, sizeof((x)))
 static inline void *__box(void *x, size_t s) {
   void *p = malloc(s);
-  memcpy(x, p, s);
+  memcpy(p, x, s);
   return p;
 }
 
