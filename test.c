@@ -8,6 +8,7 @@
   do {                                                                  \
     if (!((a)o(b))) {                                                   \
       printf(fmt "\n", __VA_ARGS__);                                    \
+      abort();                                                          \
     }                                                                   \
   } while (0);
 
@@ -17,6 +18,7 @@ expect_op((a), ==, (b), "lhs != rhs: lhs = %d, rhs = %d", (a), (b))
   do {                                                                  \
     if (!(a) || !(b) || strcmp((a), (b)) != 0) {                        \
       printf("lhs != rhs: lhs = `%s`, rhs = `%s`\n", (a), (b));         \
+      abort();                                                          \
     }                                                                   \
   } while (0);
 
