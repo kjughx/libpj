@@ -129,5 +129,46 @@ int main(void) {
                   "42 d Hello, World! 3.14000");
   }
 
+  { /* Linked List */
+    node_t ll = {.k = "hi"};
+    ll_append(&ll, "bye");
+    char *key;
+    char *answers[2] = {"hi", "bye"};
+    size_t i = 0;
+    ll_foreach(&ll, key) {
+      expect_str_eq(answers[i], key);
+      i++;
+    }
+
+    node_t *dll = Box((node_t){ .k = (void*)1});
+    int k;
+    dll_prepend(dll_tail(dll), 2);
+    dll_prepend(dll_tail(dll), 3);
+    dll_prepend(dll_tail(dll), 4);
+    i = 4;
+    dll_foreach_next(dll_tail(dll), k) {
+      expect_int_eq(i, k);
+      i--;
+    }
+    i = 1;
+    dll_foreach_prev(dll_head(dll), k) {
+      expect_int_eq(i, k);
+      i++;
+    }
+  }
+
+  { /* Box */
+    struct Struct {
+      int x, y, z;
+      char *s;
+    };
+    struct Struct s = {
+      .x = 1,
+      .y = 2,
+      .z = 3,
+      .s = "hi",
+    };
+    struct Struct *bs = Box(s);
+    expect(memcmp(bs, &s, sizeof(*bs)) == 0);
   }
 }

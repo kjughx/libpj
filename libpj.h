@@ -402,6 +402,78 @@ static inline String_Split _sb_split_str(String_Builder *sb, char *s) {
 
 /* End: STRING BUILDER */
 
+/* Start: Linked List */
+typedef struct node {
+  void *k;
+  void *v;
+  struct node *next;
+  struct node *prev;
+} node_t;
+
+#define ll_append(ll, __k) do {                              \
+    (ll)->next = Box((node_t){.k = (void*)__k});             \
+  } while(0);
+
+#define ll_foreach(ll, __key)                \
+  for (node_t *__p = (ll); \
+       (__p && ((__key = (typeof(__key))(long)__p->k) || 1)); \
+       __p = __p->next)                                \
+
+#define dll_is_tail(dll) ((dll)->prev == NULL)
+#define dll_is_head(dll) ((dll)->next == NULL)
+
+#define dll_append(dll, __k) __dll_append((dll), (void*)__k)
+static node_t *__dll_append(node_t *dll, void* k) {
+  node_t *n = Box((node_t){.k = (void*)k});
+  n->prev = dll;
+  if (dll_is_head(dll)) {
+    dll->next = n;
+  } else {
+    dll->next->prev = n;
+    dll->next = n;
+  }
+  return n;
+}
+
+#define dll_prepend(dll, __k) __dll_prepend((dll), (void*)__k)
+static node_t *__dll_prepend(node_t *dll, void* k) {
+  node_t *n = Box((node_t){.k = (void*)k});
+  n->next = dll;
+  if (dll_is_tail(dll)) {
+    dll->prev =n;
+  } else {
+    dll->prev->next = n;
+    dll->prev = n;
+  }
+  return n;
+}
+
+#define dll_foreach_next(dll, key) \
+  for(node_t *__p = (dll), *__s = (dll), *__t = NULL; \
+      __p && (!(__t++) || (__p != __s)) && \
+        ((key = (typeof(key))(long)__p->k) || 1); \
+      __p = __p->next)
+
+#define dll_foreach_prev(dll, key) \
+  for(node_t *__p = (dll), *__s = (dll), *__t = NULL; \
+      __p && (!(__t++) || (__p != __s)) && \
+        ((key = (typeof(key))(long)__p->k) || 1); \
+      __p = __p->prev)
+
+static node_t *dll_head(node_t *dll) {
+  node_t *head = dll;
+  while(head->next) head = head->next;
+  return head;
+}
+
+static node_t *dll_tail(node_t *dll) {
+  node_t *head = dll;
+  while(head->prev) head = head->prev;
+  return head;
+}
+
+/* End: Linked List */
+
 /* Start: Temporary strings */
 #define format(fmt, ...) __format(fmt, __VA_ARGS__)
 
