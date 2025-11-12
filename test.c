@@ -13,7 +13,7 @@
   } while (0);
 
   #define expect_int_eq(a, b)                                         \
-expect_op((a), ==, (b), "lhs != rhs: lhs = %d, rhs = %d", (a), (b))
+expect_op((int)(a), ==, (int)(b), "lhs != rhs: lhs = %d, rhs = %d", (int)(a), (int)(b))
 #define expect_str_eq(a, b)                                             \
   do {                                                                  \
     if (!(a) || !(b) || strcmp((a), (b)) != 0) {                        \
