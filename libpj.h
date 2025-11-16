@@ -300,7 +300,7 @@ typedef struct {
 
 #define sb_find(sb, p)                                                         \
   _Generic((p), char: sb_find_char, int: sb_find_char, char *: sb_find_str)(   \
-      (sb), p);
+      (sb), p)
 
 static inline String_View sb_find_char(String_Builder *sb, char c) {
   String_View sv = {0};
