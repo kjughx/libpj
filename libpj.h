@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include <string.h>
 
 /* Temporary buffer */
@@ -214,6 +215,17 @@ typedef struct {
     }                                                                          \
     da_append((sb), '\0');                                                     \
   } while (0);
+
+#define sb_skip_word(sb) do { \
+    while (*(sb)->items && isalnum(*(sb)->items)) { \
+      (sb)->items++;                             \
+      (sb)->count--;                             \
+    }                                            \
+    while (*(sb)->items && !isalnum(*(sb)->items)) { \
+      (sb)->items++;                                \
+      (sb)->count--;                                \
+    }                                            \
+  } while(0);
 
 #define sb_appends(sb, ...) __sb_appends((sb), __VA_ARGS__, NULL)
 static inline void __sb_appends(String_Builder *sb, ...) {
