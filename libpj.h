@@ -473,6 +473,56 @@ static node_t *dll_tail(node_t *dll) {
 }
 
 /* End: Linked List */
+/* Start: Hash Table */
+#define MAGIC 5381
+#define TABLE_SIZE 1024
+
+struct _node {
+const char* key;
+int value;
+struct _node* next;
+};
+
+typedef struct {
+  struct _node* items[TABLE_SIZE];
+
+} String2Int;
+
+size_t __hash(const char *key) {
+    size_t hash = MAGIC;
+    int c;
+    while ((c = *key++)) {
+        hash = ((hash << 5) + hash) + c; // hash * 33 + c
+    }
+    return hash;
+}
+
+#define ht_get(ht, __k, __v) do {                 \
+    (__v) = NULL;                                 \
+    size_t __i = __hash((__k)) % TABLE_SIZE;                   \
+    typeof(**(ht)->items) *__c = (ht)->items[__i];             \
+    while (__c != NULL) {                                      \
+      if (strcmp(__c->key, (__k)) == 0) {                      \
+        (__v) = __c;                                           \
+        break;                                          \
+      }                                                        \
+      __c = __c->next;                                         \
+    }                                                          \
+} while(0);
+
+#define ht_insert(ht, k, v) do {                                        \
+    size_t __i = __hash((k)) % TABLE_SIZE;                              \
+    typeof(**(ht)->items) *__n = malloc(sizeof(typeof(**(ht)->items))); \
+    expect(__n != NULL);                                                \
+    __n->key = strdup(k);                                               \
+    __n->value = v;                                                     \
+    __n->next = (ht)->items[__i];                                       \
+    (ht)->items[__i] = __n;                                             \
+  } while(0);
+
+#define ht_contains(ht, k) ((ht)->items[__hash((k)) % TABLE_SIZE] != NULL)
+
+/* End: Hash Table */
 
 /* Start: Temporary strings */
 #define format(fmt, ...) __format(fmt, __VA_ARGS__)
