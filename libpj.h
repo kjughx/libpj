@@ -198,6 +198,14 @@ static inline void *__box(void *x, size_t s) {
 #define ma_mul(ma1, ma2) TODO()
 #define ma_mulv(ma, v) TODO()
 
+typedef struct {
+  ssize_t x, y;
+} Vector2;
+
+typedef struct {
+  float x, y;
+} Vector2f;
+
 /* End: Linear Algebra */
 
 /* Start: STRING BUILDER */
