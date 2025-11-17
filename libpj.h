@@ -123,6 +123,8 @@ static char __buf[__TMP_BUF_LEN] = {0};
     da_foreach_ref((da), __item) { *__item = f(*__item); }                     \
   } while (0);
 
+#define da_sort(da, f) (qsort((da)->items, (da)->count, __item_size((da)), (f)))
+
 /* End: DYNAMIC ARRAY */
 
 /* Start: Box */
