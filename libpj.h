@@ -113,7 +113,8 @@ static char __buf[__TMP_BUF_LEN] = {0};
     if ((da)->count == (da)->capacity) {                                       \
       da_grow((da));                                                           \
     }                                                                          \
-    (da)->items[(da)->count++] = (x);                                          \
+    (da)->items[(da)->count] = (x);                                          \
+    (da)->count++;                                                      \
   } while (0);
 
 #define da_map(da, f)                                                          \
