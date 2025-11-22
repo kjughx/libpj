@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
+#include <stdbool.h>
 
 /* Temporary buffer */
 #define __TMP_BUF_LEN 1024
@@ -18,15 +19,16 @@ static char __buf[__TMP_BUF_LEN] = {0};
 /* Start: Useful macros */
 #define expect(cond)                                                           \
   do {                                                                         \
-    if (!(cond)) {                                                             \
-      printf("%s:%d: Expected %s, \n", __FILE__, __LINE__, #cond);             \
+    int c = (cond);                                                     \
+    if (!c) {                                                             \
+      printf("%s:%d: Expected `%s`, got %d\n", __FILE__, __LINE__, #cond, c);             \
     }                                                                          \
   } while (0);
 #define expectf(cond, ...) _expectf(cond, __VA_ARGS__)
 #define _expectf(cond, fmt, ...)                                               \
   do {                                                                         \
     if (!(cond)) {                                                             \
-      printf("%s:%d: Expected %s, " fmt "\n", __FILE__, __LINE__, #cond,       \
+      printf("%s:%d: Expected `%s`, " fmt "\n", __FILE__, __LINE__, #cond,       \
              ##__VA_ARGS__);                                                   \
     }                                                                          \
   } while (0);
@@ -38,6 +40,28 @@ static char __buf[__TMP_BUF_LEN] = {0};
   } while (0);
 
 #define UNUSED(x) ((void)x);
+
+#define ARRAY_LEN(x) (sizeof((x)) / (sizeof(*(x))))
+
+#define matches(s1, s2) ((strcmp((s1), (s2)) == 0))
+#define matches_n(s1, s2, n) ((strncmp((s1), (s2), (n)) == 0))
+
+#define swap(x, y) do { \
+  _Static_assert(sizeof(x) == sizeof(y)); \
+  typeof(x) __t = (y);                    \
+  (y) = (x);                              \
+  (x) = __t;                              \
+} while(0);
+
+static inline void __print_int(int x) { printf("%d\n", x); }
+static inline void __print_str(char *x) { printf("%s\n", x); }
+#define print(x) _Generic((x),                      \
+                          int: __print_int,        \
+                          char*: __print_str)(x);
+#define println(fmt, ...) (printf(fmt"\n", __VA_ARGS__))
+
+#define MAX(x, y) ((x) > (y) ? (x) : (y))
+#define MIN(x, y) ((x) < (y) ? (x) : (y))
 
 /* End: Useful macros */
 
@@ -373,7 +397,7 @@ typedef struct {
 } String_Split;
 
 static inline String_Split _sb_split_char(String_Builder *sb, char c) {
-  expect(sb);
+  expect(sb != NULL);
 
   String_Builder tmp = *sb;
   String_Split sp = {0};
@@ -553,7 +577,7 @@ size_t __hash(const char *key) {
 #define format(fmt, ...) __format(fmt, __VA_ARGS__)
 
 const char *__format(const char *fmt, ...) {
-  expect(fmt);
+  expect(fmt != NULL);
   va_list ap;
   va_start(ap, fmt);
   vsnprintf(__buf, __TMP_BUF_LEN, fmt, ap);
