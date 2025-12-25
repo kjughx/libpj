@@ -2,15 +2,15 @@
 #define _LIBPJ_H_
 
 #include <assert.h>
+#include <ctype.h>
 #include <errno.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <ctype.h>
 #include <string.h>
-#include <stdbool.h>
 
 /* Temporary buffer */
 #define __TMP_BUF_LEN 1024
@@ -19,16 +19,16 @@ static char __buf[__TMP_BUF_LEN] = {0};
 /* Start: Useful macros */
 #define expect(cond)                                                           \
   do {                                                                         \
-    int c = (cond);                                                     \
-    if (!c) {                                                             \
-      printf("%s:%d: Expected `%s`, got %d\n", __FILE__, __LINE__, #cond, c);             \
+    int c = (cond);                                                            \
+    if (!c) {                                                                  \
+      printf("%s:%d: Expected `%s`, got %d\n", __FILE__, __LINE__, #cond, c);  \
     }                                                                          \
   } while (0);
 #define expectf(cond, ...) _expectf(cond, __VA_ARGS__)
 #define _expectf(cond, fmt, ...)                                               \
   do {                                                                         \
     if (!(cond)) {                                                             \
-      printf("%s:%d: Expected `%s`, " fmt "\n", __FILE__, __LINE__, #cond,       \
+      printf("%s:%d: Expected `%s`, " fmt "\n", __FILE__, __LINE__, #cond,     \
              ##__VA_ARGS__);                                                   \
     }                                                                          \
   } while (0);
@@ -46,24 +46,48 @@ static char __buf[__TMP_BUF_LEN] = {0};
 #define matches(s1, s2) ((strcmp((s1), (s2)) == 0))
 #define matches_n(s1, s2, n) ((strncmp((s1), (s2), (n)) == 0))
 
-#define swap(x, y) do { \
-  _Static_assert(sizeof(x) == sizeof(y)); \
-  typeof(x) __t = (y);                    \
-  (y) = (x);                              \
-  (x) = __t;                              \
-} while(0);
+#define swap(x, y)                                                             \
+  do {                                                                         \
+    _Static_assert(sizeof(x) == sizeof(y));                                    \
+    typeof(x) __t = (y);                                                       \
+    (y) = (x);                                                                 \
+    (x) = __t;                                                                 \
+  } while (0);
 
 static inline void __print_int(int x) { printf("%d\n", x); }
 static inline void __print_str(char *x) { printf("%s\n", x); }
-#define print(x) _Generic((x),                      \
-                          int: __print_int,        \
-                          char*: __print_str)(x);
-#define println(fmt, ...) (printf(fmt"\n", __VA_ARGS__))
+#define print(x) _Generic((x), int: __print_int, char *: __print_str)(x);
+#define println(fmt, ...) (printf(fmt "\n", __VA_ARGS__))
 
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 
+#define SETBIT(x, n) ((x) |= (1llu << (n)))
+#define CLRBIT(x, n) ((x) &= (~(1llu << (n))))
+#define IS_SET(x, n) ((x) & (1llu << (n)))
+
+#define loop(i) for (size_t __i = 0; __i < (i); ++__i)
+
 /* End: Useful macros */
+
+/* Start: Types */
+
+typedef uint64_t u64;
+typedef int64_t i64;
+typedef uint32_t u32;
+typedef int32_t i32;
+typedef uint16_t u16;
+typedef int16_t i16;
+typedef uint8_t u8;
+typedef int8_t i8;
+
+typedef struct {
+  char *items;
+  size_t nx;
+  size_t ny;
+} Grid;
+
+/* End: Types */
 
 /* Start: DYNAMIC ARRAY */
 
@@ -137,8 +161,8 @@ static inline void __print_str(char *x) { printf("%s\n", x); }
     if ((da)->count == (da)->capacity) {                                       \
       da_grow((da));                                                           \
     }                                                                          \
-    (da)->items[(da)->count] = (x);                                          \
-    (da)->count++;                                                      \
+    (da)->items[(da)->count] = (x);                                            \
+    (da)->count++;                                                             \
   } while (0);
 
 #define da_map(da, f)                                                          \
@@ -149,14 +173,23 @@ static inline void __print_str(char *x) { printf("%s\n", x); }
 
 #define da_sort(da, f) (qsort((da)->items, (da)->count, __item_size((da)), (f)))
 
+#define da_pop(da) ((da)->items[--(da)->count])
+
 /* End: DYNAMIC ARRAY */
 
 /* Start: Box */
-#define Box(x) __box(&x, sizeof((x)))
+#define Box(x)                                                                 \
+  _Generic((x), char *: __box_str, default: __box)(&x, sizeof((x)));
 static inline void *__box(void *x, size_t s) {
   void *p = malloc(s);
   memcpy(p, x, s);
   return p;
+}
+
+static inline char *__box_str(void *x, size_t s) {
+  UNUSED(s);
+  char *str = *(char **)x;
+  return strdup(str);
 }
 
 /* End: Box */
@@ -183,7 +216,7 @@ static inline void *__box(void *x, size_t s) {
     if (!(ma)->items) {                                                        \
       (ma)->items = malloc(ma_size((ma)));                                     \
     }                                                                          \
-    expect((ma)->items);                                                       \
+    expect((ma)->items != NULL);                                       \
   } while (0);
 
 /* Returns pointer to element */
@@ -204,7 +237,11 @@ static inline void *__box(void *x, size_t s) {
     memset((ma)->items, val, ma_size((ma)));                                   \
   } while (0);
 
-#define ma_inbounds(ma, x, y) ((0 <= (x) && (x) < (typeof((x)))(ma)->nx) && (0 <= (y) && (y) < (typeof((y)))(ma)->ny))
+#define ma_zero(ma) ma_fill((ma), 0)
+
+#define ma_inbounds(ma, x, y)                                                  \
+  ((0 <= (x) && (x) < (typeof((x)))(ma)->nx) &&                                \
+   (0 <= (y) && (y) < (typeof((y)))(ma)->ny))
 
 #define v_size(v) ((v)->n * sizeof((v)->items[0]))
 #define v_init(v)                                                              \
@@ -225,6 +262,10 @@ static inline void *__box(void *x, size_t s) {
 typedef struct {
   ssize_t x, y;
 } Vector2;
+
+typedef struct {
+  ssize_t x, y, z;
+} Vector3;
 
 typedef struct {
   float x, y;
@@ -253,16 +294,25 @@ typedef struct {
     da_append((sb), '\0');                                                     \
   } while (0);
 
-#define sb_skip_word(sb) do { \
-    while (*(sb)->items && isalnum(*(sb)->items)) { \
-      (sb)->items++;                             \
-      (sb)->count--;                             \
-    }                                            \
-    while (*(sb)->items && !isalnum(*(sb)->items)) { \
-      (sb)->items++;                                \
-      (sb)->count--;                                \
-    }                                            \
-  } while(0);
+#define sb_skip_word(sb)                                                       \
+  do {                                                                         \
+    while (*(sb)->items && isalnum(*(sb)->items)) {                            \
+      (sb)->items++;                                                           \
+      (sb)->count--;                                                           \
+    }                                                                          \
+    while (*(sb)->items && isspace(*(sb)->items)) {                            \
+      (sb)->items++;                                                           \
+      (sb)->count--;                                                           \
+    }                                                                          \
+  } while (0);
+
+static inline char *sb_get_words(String_Builder *sb, int n) {
+  char *tmp = sb->items;
+  while (n--) {
+    sb_skip_word(sb);
+  }
+  return strndup(tmp, sb->items - tmp - 1);
+}
 
 #define sb_appends(sb, ...) __sb_appends((sb), __VA_ARGS__, NULL)
 static inline void __sb_appends(String_Builder *sb, ...) {
@@ -275,6 +325,12 @@ static inline void __sb_appends(String_Builder *sb, ...) {
     s = va_arg(ap, char *);
   }
 }
+
+#define sb_from_cstr(__cstr)                                                   \
+  (String_Builder) {                                                           \
+    .items = strdup(__cstr), .count = strlen(__cstr),                          \
+    .capacity = strlen(__cstr)                                                 \
+  }
 
 #define sb_appendf(sb, fmt, ...)                                               \
   do {                                                                         \
@@ -320,7 +376,8 @@ static inline void __sb_read_file_char(String_Builder *sb,
   } while (0);
 
 static inline void sb_strip(String_Builder *sb, char c) {
-  if (sb->count == 0) return;
+  if (sb->count == 0)
+    return;
   if (sb->items[0] == c) {
     sb->items++; /* LEAK */
     sb->count--;
@@ -428,7 +485,7 @@ static inline String_Split _sb_split_char(String_Builder *sb, char c) {
 
   String_View sv = {
       .buf = tmp.items,
-      .size = (sb->count - tmp.count),
+      .size = tmp.count,
   };
 
   da_append(&sp, sv);
@@ -449,6 +506,9 @@ static inline String_Split _sb_split_str(String_Builder *sb, char *s) {
 #define sb_split(sb, c)                                                        \
   _Generic((c), int: _sb_split_char, char *: _sb_split_str)((sb), (c));
 
+#define sb_foreach_line(sb, __l)                                               \
+  for ((__l) = strtok((sb)->items, "\n"); (__l); __l = strtok(NULL, "\n"))
+
 /* End: STRING BUILDER */
 
 /* Start: Linked List */
@@ -459,21 +519,22 @@ typedef struct node {
   struct node *prev;
 } node_t;
 
-#define ll_append(ll, __k) do {                              \
-    (ll)->next = Box((node_t){.k = (void*)__k});             \
-  } while(0);
+#define ll_append(ll, __k)                                                     \
+  do {                                                                         \
+    (ll)->next = Box((node_t){.k = (void *)__k});                              \
+  } while (0);
 
-#define ll_foreach(ll, __key)                \
-  for (node_t *__p = (ll); \
-       (__p && ((__key = (typeof(__key))(long)__p->k) || 1)); \
-       __p = __p->next)                                \
+#define ll_foreach(ll, __key)                                                  \
+  for (node_t *__p = (ll);                                                     \
+       (__p && ((__key = (typeof(__key))(long)__p->k) || 1)); __p = __p->next)
 
 #define dll_is_tail(dll) ((dll)->prev == NULL)
 #define dll_is_head(dll) ((dll)->next == NULL)
 
-#define dll_append(dll, __k) __dll_append((dll), (void*)__k)
-static node_t *__dll_append(node_t *dll, void* k) {
-  node_t *n = Box((node_t){.k = (void*)k});
+#define dll_append(dll, __k) __dll_append((dll), (void *)__k)
+static node_t *__dll_append(node_t *dll, void *k) {
+  node_t _n = {.k = (void *)k};
+  node_t *n = Box(_n);
   n->prev = dll;
   if (dll_is_head(dll)) {
     dll->next = n;
@@ -484,12 +545,13 @@ static node_t *__dll_append(node_t *dll, void* k) {
   return n;
 }
 
-#define dll_prepend(dll, __k) __dll_prepend((dll), (void*)__k)
-static node_t *__dll_prepend(node_t *dll, void* k) {
-  node_t *n = Box((node_t){.k = (void*)k});
+#define dll_prepend(dll, __k) __dll_prepend((dll), (void *)__k)
+static node_t *__dll_prepend(node_t *dll, void *k) {
+  node_t _n = {.k = (void *)k};
+  node_t *n = Box(_n);
   n->next = dll;
   if (dll_is_tail(dll)) {
-    dll->prev =n;
+    dll->prev = n;
   } else {
     dll->prev->next = n;
     dll->prev = n;
@@ -497,86 +559,286 @@ static node_t *__dll_prepend(node_t *dll, void* k) {
   return n;
 }
 
-#define dll_foreach_next(dll, key) \
-  for(node_t *__p = (dll), *__s = (dll), *__t = NULL; \
-      __p && (!(__t++) || (__p != __s)) && \
-        ((key = (typeof(key))(long)__p->k) || 1); \
-      __p = __p->next)
+#define dll_foreach_next(dll, key)                                             \
+  for (node_t *__p = (dll), *__s = (dll), *__t = NULL;                         \
+       __p && (!(__t++) || (__p != __s)) &&                                    \
+       ((key = (typeof(key))(long)__p->k) || 1);                               \
+       __p = __p->next)
 
-#define dll_foreach_prev(dll, key) \
-  for(node_t *__p = (dll), *__s = (dll), *__t = NULL; \
-      __p && (!(__t++) || (__p != __s)) && \
-        ((key = (typeof(key))(long)__p->k) || 1); \
-      __p = __p->prev)
+#define dll_foreach_prev(dll, key)                                             \
+  for (node_t *__p = (dll), *__s = (dll), *__t = NULL;                         \
+       __p && (!(__t++) || (__p != __s)) &&                                    \
+       ((key = (typeof(key))(long)__p->k) || 1);                               \
+       __p = __p->prev)
 
 static node_t *dll_head(node_t *dll) {
   node_t *head = dll;
-  while(head->next) head = head->next;
+  while (head->next)
+    head = head->next;
   return head;
 }
 
 static node_t *dll_tail(node_t *dll) {
   node_t *head = dll;
-  while(head->prev) head = head->prev;
+  while (head->prev)
+    head = head->prev;
   return head;
 }
 
 /* End: Linked List */
 /* Start: Hash Table */
 #define MAGIC 5381
-#define TABLE_SIZE 1024
+#define TABLE_SIZE 50000
 
-struct _node {
-const char* key;
-int value;
-struct _node* next;
+struct __node_String2Int {
+  char *key;
+  u64 *value;
+  struct __node_String2Int *next;
 };
 
 typedef struct {
-  struct _node* items[TABLE_SIZE];
+  struct __node_String2Int *nodes[TABLE_SIZE];
 
+  char **items;
+  size_t count;
+  size_t capacity;
 } String2Int;
 
-size_t __hash(const char *key) {
-    size_t hash = MAGIC;
-    int c;
-    while ((c = *key++)) {
-        hash = ((hash << 5) + hash) + c; // hash * 33 + c
-    }
-    return hash;
+struct __node_Int2Int {
+  u64 *key;
+  u64 *value;
+  struct __node_Int2Int *next;
+};
+
+typedef struct {
+  struct __node_Int2Int *nodes[TABLE_SIZE];
+
+  u64 **items;
+  size_t count;
+  size_t capacity;
+
+} Int2Int;
+
+struct __node_Vector22Int {
+  Vector2 *key;
+  u64 *value;
+  struct __node_Vector22Int *next;
+};
+
+typedef struct {
+  struct __node_Vector22Int *nodes[TABLE_SIZE];
+
+  Vector2 **items;
+  size_t count;
+  size_t capacity;
+} Vector22Int;
+
+struct __node_Vector32Int {
+  Vector3 *key;
+  u64 *value;
+  struct __node_Vector32Int *next;
+};
+
+typedef struct {
+  struct __node_Vector32Int *nodes[TABLE_SIZE];
+
+  Vector3 **items;
+  size_t count;
+  size_t capacity;
+} Vector32Int;
+
+struct __node_DASet {
+  u64 *key;
+  struct __node_DASet *next;
+};
+
+typedef struct {
+  struct __node_DASet *nodes[TABLE_SIZE];
+
+  void ***items;
+  size_t count;
+  size_t capacity;
+} DASet;
+
+#define HT_DECL(name, keytype, valtype)                                        \
+  struct __node##name {                                                        \
+    char *key;                                                                 \
+    valtype *value;                                                            \
+    struct __node##name *next;                                                 \
+  };                                                                           \
+  typedef struct {                                                             \
+    struct __node##name *nodes[TABLE_SIZE];                                    \
+    char **items;                                                              \
+    size_t count;                                                              \
+    size_t capacity;                                                           \
+  } name;
+
+size_t __hash_str(const char *key) {
+  size_t hash = MAGIC;
+  int c;
+  while ((c = *key++)) {
+    hash = ((hash << 5) + hash) + c; // hash * 33 + c
+  }
+  return hash;
 }
 
-#define ht_get(ht, __k, __v) do {                 \
-    (__v) = NULL;                                 \
-    size_t __i = __hash((__k)) % TABLE_SIZE;                   \
-    typeof(**(ht)->items) *__c = (ht)->items[__i];             \
-    while (__c != NULL) {                                      \
-      if (strcmp(__c->key, (__k)) == 0) {                      \
-        (__v) = __c;                                           \
-        break;                                          \
-      }                                                        \
-      __c = __c->next;                                         \
-    }                                                          \
-} while(0);
+size_t __hash_u64(u64 key) {
+  size_t hash = MAGIC;
+  int c;
+  while ((c = (key & 0xff))) {
+    hash = ((hash << 5) + hash) + c; // hash * 33 + c
+    key >>= 8;
+  }
+  return hash;
+}
+size_t __hash_v2(Vector2 key) {
+  return __hash_u64(key.x) + __hash_u64(key.y);
+}
+size_t __hash_v3(Vector3 key) {
+  return __hash_u64(key.x) + __hash_u64(key.y) + __hash_u64(key.z);
+}
 
-#define ht_insert(ht, k, v) do {                                        \
-    size_t __i = __hash((k)) % TABLE_SIZE;                              \
-    typeof(**(ht)->items) *__n = malloc(sizeof(typeof(**(ht)->items))); \
-    expect(__n != NULL);                                                \
-    __n->key = strdup(k);                                               \
-    __n->value = v;                                                     \
-    __n->next = (ht)->items[__i];                                       \
-    (ht)->items[__i] = __n;                                             \
-  } while(0);
+#define __hash(__k) _Generic((__k), char *: __hash_str, u64: __hash_u64, Vector2: __hash_v2, Vector3: __hash_v3)((__k))
+
+#define ht_get(ht, __k) _Generic((__k),                                 \
+                                 char *: __ht_get_str,                  \
+                                 Vector2: __ht_get_v2,                  \
+                                 Vector3: __ht_get_v3,                  \
+                                 default: __ht_get)((ht), (__k), offsetof(typeof(*(ht)->nodes[0]), key), \
+                                                    offsetof(typeof(*(ht)), nodes), sizeof(*(ht)->nodes), \
+                                                    offsetof(typeof(*(ht)->nodes[0]), value), \
+                                                    offsetof(typeof(*(ht)->nodes[0]), next))
+
+static inline void *__ht_get_str(void *ht, char* key, size_t key_offset,
+                             size_t nodes_offset, size_t node_size,
+                             size_t value_offset, size_t next_offset) {
+  size_t nodes = (size_t)ht + nodes_offset; // &nodes[0]
+  size_t idx = __hash(key) % TABLE_SIZE;
+  void *node = *(void **)((size_t)nodes + idx * node_size); // nodes[idx] -> struct node*
+  if (node == NULL) return NULL;
+
+  char *_key = NULL;
+
+  /* Now start searching the linked list, for a node with the same key */
+  while (node != NULL) {
+    _key = *(char **)((size_t)node + key_offset);
+    if (strcmp(key, _key) == 0) break;
+    node = *(void **)(((size_t)node) + next_offset); // node->next
+  }
+
+  if (node == NULL) return NULL;
+
+  void *p = *(void**)(((size_t)node) + value_offset); // &node->value
+  return p;
+}
+
+static inline void *__ht_get(void *ht, u64 key, size_t key_offset,
+                             size_t nodes_offset, size_t node_size,
+                             size_t value_offset, size_t next_offset) {
+  size_t nodes = (size_t)ht + nodes_offset; // &nodes[0]
+  size_t idx = __hash(key) % TABLE_SIZE;
+  void *node = *(void **)((size_t)nodes + idx * node_size); // nodes[idx] -> struct node*
+  if (node == NULL) return NULL;
+
+  u64 *_key = NULL;
+
+  /* Now start searching the linked list, for a node with the same key */
+  while (node != NULL) {
+    _key = *(u64 **)((size_t)node + key_offset);
+    if (key == *_key) break;
+    node = *(void **)(((size_t)node) + next_offset); // node->next
+  }
+
+  if (node == NULL) return NULL;
+
+  void *p = *(void**)(((size_t)node) + value_offset); // &node->value
+  return p;
+}
+
+static inline void *__ht_get_v2(void *ht, Vector2 key, size_t key_offset,
+                             size_t nodes_offset, size_t node_size,
+                             size_t value_offset, size_t next_offset) {
+  size_t nodes = (size_t)ht + nodes_offset; // &nodes[0]
+  size_t idx = __hash(key) % TABLE_SIZE;
+  void *node = *(void **)((size_t)nodes + idx * node_size); // nodes[idx] -> struct node*
+  if (node == NULL) return NULL;
+
+  Vector2 *_key = NULL;
+
+  /* Now start searching the linked list, for a node with the same key */
+  while (node != NULL) {
+    _key = *(Vector2 **)((size_t)node + key_offset);
+    if (memcmp(&key, _key, sizeof(key)) == 0) break;
+    node = *(void **)(((size_t)node) + next_offset); // node->next
+  }
+
+  if (node == NULL) return NULL;
+
+  void *p = *(void**)(((size_t)node) + value_offset); // &node->value
+  return p;
+}
+
+static inline void *__ht_get_v3(void *ht, Vector3 key, size_t key_offset,
+                             size_t nodes_offset, size_t node_size,
+                             size_t value_offset, size_t next_offset) {
+  size_t nodes = (size_t)ht + nodes_offset; // &nodes[0]
+  size_t idx = __hash(key) % TABLE_SIZE;
+  void *node = *(void **)((size_t)nodes + idx * node_size); // nodes[idx] -> struct node*
+  if (node == NULL) return NULL;
+
+  Vector3 *_key = NULL;
+
+  /* Now start searching the linked list, for a node with the same key */
+  while (node != NULL) {
+    _key = *(Vector3 **)((size_t)node + key_offset);
+    if (memcmp(&key, _key, sizeof(key)) == 0) break;
+    node = *(void **)(((size_t)node) + next_offset); // node->next
+  }
+
+  if (node == NULL) return NULL;
+
+  void *p = *(void**)(((size_t)node) + value_offset); // &node->value
+  return p;
+}
+
+#define ht_insert(ht, k, v)                                                    \
+  do {                                                                         \
+    size_t __i = __hash((k)) % TABLE_SIZE;                                     \
+    typeof(v) __v = v;                                                         \
+    typeof(k) __k = k;                                                  \
+    typeof(**(ht)->nodes) *__n = malloc(sizeof(typeof(**(ht)->nodes)));        \
+    expect(__n != NULL);                                                       \
+    __n->key = Box(__k);                                                \
+    __n->value = Box(__v);                                                     \
+    __n->next = (ht)->nodes[__i];                                              \
+    (ht)->nodes[__i] = __n;                                                    \
+    da_append((ht), __n->key);                                                 \
+  } while (0);
 
 #define ht_contains(ht, k) ((ht)->items[__hash((k)) % TABLE_SIZE] != NULL)
+
+#define ht_clear(ht) do { \
+  for (size_t __i = 0; __i < (ht)->count; ++__i) { \
+    size_t __idx = __hash(*(ht)->items[__i]) % TABLE_SIZE; \
+    if ((ht)->nodes[__idx]) { \
+      void *n = (void*)(ht)->nodes[__i];        \
+      while (n) {                               \
+        void *next = *(void**)(((size_t)n) + offsetof(typeof(*(ht)->nodes[0]), next)); \
+        free(n);                                                        \
+        n = next;                                                       \
+      }                                         \
+    } \
+    (ht)->nodes[__idx] = NULL;                  \
+    (ht)->count = 0;                            \
+  } \
+} while(0);
 
 /* End: Hash Table */
 
 /* Start: Temporary strings */
 #define format(fmt, ...) __format(fmt, __VA_ARGS__)
 
-const char *__format(const char *fmt, ...) {
+char *__format(const char *fmt, ...) {
   expect(fmt != NULL);
   va_list ap;
   va_start(ap, fmt);
@@ -585,4 +847,35 @@ const char *__format(const char *fmt, ...) {
   return __buf;
 }
 /* End: Temporary strings */
+
+/* Start: Math */
+/* End: Math */
+
+/* Start: Grid */
+#define grid_read(p) _Generic((p), FILE*: __grid_read_fp(p))
+static inline Grid __grid_read_fp(FILE *p) {
+  String_Builder sb = {0};
+  sb_read_file(&sb, p);
+  sb_strip(&sb, '\n');
+  String_Split lines = sb_split(&sb, '\n');
+  Grid G = {.nx = lines.items[0].size, .ny = lines.count};
+  ma_init(&G);
+
+  for (size_t y = 0; y < G.ny; ++y) {
+    for (size_t x = 0; x < G.nx; ++x) {
+      *ma_at(&G, x, y) = lines.items[y].buf[x];
+    }
+  }
+  return G;
+}
+
+static inline void grid_print(Grid *G) {
+  for (size_t y = 0; y < G->ny; ++y) {
+    for (size_t x = 0; x < G->nx; ++x) {
+      printf("%c", *ma_at(G, x, y));
+    }
+    printf("\n");
+  }
+}
+/* End: Grid */
 #endif // _LIBPJ_H_
